@@ -8,3 +8,6 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.APP_NAME)
 app.include_router(api_rotas)
+
+
+#teste
