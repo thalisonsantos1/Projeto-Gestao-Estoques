@@ -1,23 +1,42 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.db.deps import get_db
-## contrato da API - schemas
-from app.schemas.produto import ProdutoCreate, ProdutoOut
-from app.repositories import produto as repo
+from sqlalchemy import func
+from typing import List
+from app import models, schemas
+from app.db.session import get_db
 
-rotas = APIRouter(prefix="/v1/produto", tags=["produto"])
+router = APIRouter(prefix="/produtos", tags=["produtos"])
 
-@rotas.post("/", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED)
-def create(payload: ProdutoCreate, db: Session = Depends(get_db)):
-    return repo.create(db, payload)
+@router.post("/", response_model=schemas.ProdutoOut, status_code=status.HTTP_201_CREATED)
+def criar_produto(produto: schemas.ProdutoCreate, db: Session = Depends(get_db)):
+    novo = models.Produto(**produto.dict())
+    db.add(novo)
+    db.commit()
+    db.refresh(novo)
+    return novo
 
-@rotas.get("/", response_model=list[ProdutoOut])
-def list_all(db: Session = Depends(get_db)):
-    return repo.get_all(db)
+@router.get("/", response_model=List[schemas.ProdutoOut])
+def listar_produtos(db: Session = Depends(get_db)):
+    return db.query(models.Produto).all()
 
-@rotas.get("/", response_model=ProdutoOut)
-def get_id(Produto_id:int, db: Session=Depends(get_db)):
-    objeto = repo.get(db, Produto_id)
-    if not objeto: 
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto nao encontrada")
-    return objeto
+@router.get("/abaixo-minimo", response_model=List[schemas.SaldoOut])
+def listar_abaixo_minimo(db: Session = Depends(get_db)):
+    produtos = db.query(models.Produto).filter(models.Produto.ativo == True).all()
+    resultado = []
+
+    for produto in produtos:
+        entradas = db.query(func.coalesce(func.sum(models.EstoqueMovimento.quantidade), 0)).filter(
+            models.EstoqueMovimento.produto_id == produto.id,
+            models.EstoqueMovimento.tipo == models.MovimentoTipo.ENTRADA
+        ).scalar()
+
+        saidas = db.query(func.coalesce(func.sum(models.EstoqueMovimento.quantidade), 0)).filter(
+            models.EstoqueMovimento.produto_id == produto.id,
+            models.EstoqueMovimento.tipo == models.MovimentoTipo.SAIDA
+        ).scalar()
+
+        saldo = (entradas or 0) - (saidas or 0)
+        if saldo < produto.estoque_minimo:
+            resultado.append(schemas.SaldoOut(produto_id=produto.id, saldo=saldo))
+
+    return resultado

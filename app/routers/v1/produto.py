@@ -5,7 +5,7 @@ from typing import List
 from app import models, schemas
 from app.db.session import get_db
 
-router = APIRouter(prefix="/api/v1/produtos", tags=["produtos"])
+router = APIRouter(prefix="/produtos", tags=["produtos"])
 
 @router.post("/", response_model=schemas.ProdutoOut, status_code=status.HTTP_201_CREATED)
 def criar_produto(produto: schemas.ProdutoCreate, db: Session = Depends(get_db)):
