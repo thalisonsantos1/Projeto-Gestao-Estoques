@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, conint
+from pydantic import BaseModel, conint
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -10,7 +10,7 @@ class MovimentoTipo(str, Enum):
 class EstoqueMovimentoCreate(BaseModel):
     produto_id: int
     tipo: MovimentoTipo
-    quantidade: conint(gt=0)  # quantidade > 0
+    quantidade: conint(gt=0)
     motivo: Optional[str] = None
 
 class EstoqueMovimentoOut(BaseModel):
