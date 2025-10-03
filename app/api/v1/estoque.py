@@ -3,16 +3,17 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 
-from app import models, schemas
-from app.db.session import get_db
+from app import models
+from app.db.deps import get_db
+from app.schemas.estoque import SaldoOut, EstoqueMovimentoCreate, EstoqueMovimentoOut
 
 router = APIRouter(prefix="/estoque", tags=["estoque"])
 
 # ----------------------------
 # Etapa 1 e 2: Criar movimento
 # ----------------------------
-@router.post("/movimentos", response_model=schemas.MovimentoResponse)
-def criar_movimento(movimento: schemas.MovimentoCreate, db: Session = Depends(get_db)):
+@router.post("/movimentos", response_model=EstoqueMovimentoOut)
+def criar_movimento(movimento: EstoqueMovimentoCreate, db: Session = Depends(get_db)):
     # Verifica se o produto existe
     produto = db.query(models.Produto).filter(models.Produto.id == movimento.produto_id).first()
     if not produto:
@@ -42,7 +43,7 @@ def criar_movimento(movimento: schemas.MovimentoCreate, db: Session = Depends(ge
 # ----------------------------
 # Etapa 3: Listar todos os movimentos
 # ----------------------------
-@router.get("/movimentos", response_model=List[schemas.MovimentoResponse])
+@router.get("/movimentos", response_model=List[EstoqueMovimentoOut])
 def listar_movimentos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     movimentos = db.query(models.Movimento).offset(skip).limit(limit).all()
     return movimentos
@@ -50,7 +51,7 @@ def listar_movimentos(skip: int = 0, limit: int = 100, db: Session = Depends(get
 # ----------------------------
 # Etapa 4: Consultar saldo por produto
 # ----------------------------
-@router.get("/saldo/{produto_id}", response_model=schemas.SaldoResponse)
+@router.get("/saldo/{produto_id}", response_model=SaldoOut)
 def consultar_saldo(produto_id: int, db: Session = Depends(get_db)):
     produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
     if not produto:

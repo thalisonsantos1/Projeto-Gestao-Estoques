@@ -3,23 +3,26 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from app import models, schemas
-from app.db.session import get_db
+from app.schemas.produto import ProdutoCreate, ProdutoOut
+from app.schemas.estoque import SaldoOut
+
+from app.db.deps import get_db
 
 router = APIRouter(prefix="/produtos", tags=["produtos"])
 
-@router.post("/", response_model=schemas.ProdutoOut, status_code=status.HTTP_201_CREATED)
-def criar_produto(produto: schemas.ProdutoCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED)
+def criar_produto(produto: ProdutoCreate, db: Session = Depends(get_db)):
     novo = models.Produto(**produto.dict())
     db.add(novo)
     db.commit()
     db.refresh(novo)
     return novo
 
-@router.get("/", response_model=List[schemas.ProdutoOut])
+@router.get("/", response_model=List[ProdutoOut])
 def listar_produtos(db: Session = Depends(get_db)):
     return db.query(models.Produto).all()
 
-@router.get("/abaixo-minimo", response_model=List[schemas.SaldoOut])
+@router.get("/abaixo-minimo", response_model=List[SaldoOut])
 def listar_abaixo_minimo(db: Session = Depends(get_db)):
     produtos = db.query(models.Produto).filter(models.Produto.ativo == True).all()
     resultado = []
